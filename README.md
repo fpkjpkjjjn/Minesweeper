@@ -1,42 +1,57 @@
 # Minesweeper
 
-**Predmet:** Programovanie  
+**Subject:** Programming
 
-**Autor:** Ivan Kysel
+**Author:** Ivan Kysel
 
-**Rok:** 2025/2026
-
----
-
-## Popis hry
-
-Minesweeper je logická hra, v ktorej je cieľom hráča otvoriť všetky bezpečné bunky bez toho, aby narazil na mínu. Hra sa hrá termináli pomocou knižnice ncurses cez obaľovaciu vrstvu world.
-
-Pole má rozmer 20 × 15 buniek a obsahuje 45 mín. Prvé kliknutie je vždy bezpečné, míny sa objavia mimo bezpečnej zóny (minimálne 3 x 3 bunky).
+**Year:** 2025/2026
 
 ---
 
-## Kompilácia a spustenie
+## Game Description
 
-### Požiadavky
+Minesweeper is a logic puzzle game where the player's goal is to reveal all safe cells without hitting a mine. The game runs in the terminal using the `ncurses` library through the `world` wrapper layer.
 
-- GCC kompilátor
-- Knižnica `ncurses`
+The board is 20 × 15 cells and contains 45 mines. The first click is always safe — mines are placed outside a safe zone of at least 3 × 3 cells around it.
+
+<p align="center">
+  <img src="minesweeper gamepl.png" alt="Minesweeper gameplay screenshot" width="700" />
+</p>
+
+---
+
+## Key Challenges
+
+A few parts of the implementation required extra care:
+
+- **Flood-fill on reveal** - when an empty cell (no adjacent mines) is opened, the game needs to recursively reveal the connected region of empty cells and their bordering numbered cells, without re-processing cells already revealed or running into stack issues on large empty areas.
+- **Guaranteed-safe first click** - mines can't be placed until after the player's first move, since the first click must always land on a safe zone. This means mine placement and neighbor-mine counting happen dynamically after the first input, not at game start.
+- **Rendering through a fixed wrapper** - all drawing goes through the `world` library's fixed API (`set_cell`, `set_color_cell`, `set_message`, etc.), so the challenge was building a clean rendering layer (`draw_game`, `show_bar`, `show_title`, etc.) on top of a small, unchangeable set of primitives rather than calling `ncurses` directly.
+- **State management without dynamic reallocation** - restarting the game (`reset_game`) reuses the existing `struct game` allocation via `memset` instead of freeing and reallocating memory, keeping the game loop simple and avoiding unnecessary heap churn.
+
+---
+
+## Build and Run
+
+### Requirements
+
+- GCC compiler
+- `ncurses` library
 - `make`
 
-### Kompilácia
+### Build
 
 ```bash
 make
 ```
 
-### Spustenie
+### Run
 
 ```bash
 ./minesweeper
 ```
 
-### Vyčistenie
+### Clean
 
 ```bash
 make clean
@@ -44,136 +59,136 @@ make clean
 
 ---
 
-## Návod na hranie
+## How to Play
 
-### Ovládanie
+### Controls
 
-| Kláves | Akcia |
+| Key | Action |
 |--------|-------|
-| `Arrows` | Pohyb kurzora po poli |
-| `Space` alebo `Enter` | Odkryť bunku |
-| `F` | Postaviť / odstrániť vlajku na bunke |
-| `R` | Reštartovať hru |
-| `ESC` | Ukončiť hru |
+| `Arrows` | Move the cursor across the board |
+| `Space` or `Enter` | Reveal a cell |
+| `F` | Place / remove a flag on a cell |
+| `R` | Restart the game |
+| `ESC` | Quit the game |
 
 ---
 
-### Symboly na poli
+### Board Symbols
 
-| Symbol | Význam |
+| Symbol | Meaning |
 |--------|--------|
-| `#` | Neodkrytá bunka |
-| `F` | Označenie podozrivej bunky |
-| _(číslo na bunke)_ | Počet mín v susedných 8 bunkách |
-| _(prázdna biela)_ | Odkrytá bezpečná bunka bez susedných mín |
-| `*` | Mína (zobrazí sa po prehratí) |
-| _(žlté pozadie)_ | Aktuálna poloha kurzora |
+| `#` | Unrevealed cell |
+| `F` | Flagged (suspected mine) cell |
+| _(number on cell)_ | Number of mines in the 8 neighboring cells |
+| _(empty white)_ | Revealed safe cell with no adjacent mines |
+| `*` | Mine (shown after losing) |
+| _(yellow background)_ | Current cursor position |
 
 ---
 
-### Podmienky ukončenia hry
+### Win/Loss Conditions
 
-- **Výhra:** Hráč otvorí všetky bezpečné bunky, zvyšné majú počet vlajok zodpovedajúci počtu mín.
-- **Prehra:** Hráč odkryje bunku, pod ktorou je mína. Po prehre sa zobrazia všetky míny na poli.
+- **Win:** The player reveals all safe cells; the remaining ones are flagged with a count matching the number of mines.
+- **Loss:** The player reveals a cell containing a mine. All mines are then shown on the board.
 
 ---
 
-## Štruktúra projektu
+## Project Structure
 
 ```
 minesweeper/
-├── main.c    - Hlavné funkcie main a start_world()
-├── game.c    - Herná logika, vykresľovanie, spracovanie klávesov
-├── game.h    - Štruktúry Cell a game, konštanty poľa, deklarácie funkcií
-├── world.c   - Predpripravené funkcie knižnice world s ncurses
-├── world.h   - Rozhranie knižnice world, typy udalostí
-├── Makefile  - Súbor kompilácie projektu
-└── README.md - Dokumentácia
+├── main.c    - Main function and start_world()
+├── game.c    - Game logic, rendering, key handling
+├── game.h    - Cell and game structs, board constants, function declarations
+├── world.c   - Prebuilt world library functions using ncurses
+├── world.h   - World library interface, event types
+├── Makefile  - Project build file
+└── README.md - Documentation
 ```
 
 ---
 
-## Popis programu
+## Program Description
 
-### Štruktúry
+### Structures
 
 #### `Cell` (game.h)
 
-Reprezentuje jednu bunku herného poľa.
+Represents a single cell of the game board.
 
 ---
 
 #### `struct game` (game.h)
 
-Hlavná štruktúra uchovávajúca stav hry. Obsahuje herné pole, polohu kurzora, stav hry a čas.
+Main structure holding the game state. Contains the board, cursor position, game state, and elapsed time.
 
 ---
 
-### Funkcie súboru game.c
+### Functions in game.c
 
 #### `void move_cursor(struct game* st, int dx, int dy)`
-Posúva kurzor na zadané čísla s kontrolou nad hranicami polí.
+Moves the cursor by the given offsets, with boundary checking against the board edges.
 
 ---
 
 #### `void place_mines(struct game* st, int safe_x, int safe_y)`
-Náhodne umiestňuje míny na hraciu plochu, pričom vždy berie do úvahy bezpečnú zónu okolo prvého kliknutia hráča a počíta počet susedných mín pre každú bunku.
+Randomly places mines on the board, always respecting the safe zone around the player's first click, and calculates the number of adjacent mines for each cell.
 
 ---
 
 #### `void reveal_cell(struct game* st, int x, int y)`
-Odkrýva bunku na pozícii. Ak bunka obsahuje mínu, nastaví `game_state = -1` a hra sa skončí. Taktiež, ak bunka neobsahuje žiadne míny v okolí, otvorí tieto bunky pomocou algoritmu flood-fill a otvorí väčšiu oblasť. Po každom odkrytí kontroluje podmienku výhry.
+Reveals the cell at the given position. If the cell contains a mine, sets `game_state = -1` and ends the game. If the cell has no adjacent mines, it recursively reveals the surrounding area using a flood-fill algorithm. Checks the win condition after every reveal.
 
 ---
 
 #### `static void reset_game(struct game* st)`
-Vynuluje celý stav hry pomocou memset a znova umiestni kurzor do stredu. Nealokuje novú pamäť a pracuje priamo s existujúcou štruktúrou.
+Resets the entire game state using `memset` and repositions the cursor to the center. Does not allocate new memory — it operates directly on the existing structure.
 
 ---
 
 #### `void* init_game()`
-Alokuje a inicializuje štruktúru `struct game`. Kurzor sa umiestni do stredu poľa. Vracia ukazovateľ na stav hry, ktorý knižnica `world` ďalej predáva do každého volania `game_event`.
+Allocates and initializes the `struct game` structure. The cursor is placed at the center of the board. Returns a pointer to the game state, which the `world` library then passes to every call of `game_event`.
 
 ---
 
 #### `void show_bar(int x, int y)` / `show_title(int x, int y)` / `show_win(int x, int y)` / `show_lose(int x, int y)`
-Pomocné funkcie na vykreslenie dekoratívnych prvkov: rámčeka s ovládaním, veľkého ASCII art nadpisu `MINESWEEPER` a správ o výhre/prehre. Všetky nadpisy sú zložené zo znakov `#`.
+Helper functions that render decorative elements: a control-scheme panel, a large ASCII-art `MINESWEEPER` title, and win/loss messages. All headings are built from `#` characters.
 
 ---
 
 #### `static short num_color(int n)`
-Určuje farbu na základe vstupnej číslice v parametri.
+Determines the display color based on the given number.
 
 ---
 
 #### `static void draw_game(struct game* st, struct event* event)`
-Vykreslí celý aktuálny stav hry na obrazovku. Volá funkciu `clear_screen()` a následne kreslí: hornú a dolnú hranice s názvom hry, informačný panel (počet mín, vlajok, čas), herné pole, bočný panel `show_bar`, ASCII art nadpis / výhernú / prehrávajúcu správu.
+Renders the entire current game state on screen. Calls `clear_screen()` and then draws: the top and bottom borders with the game title, the info panel (mine count, flag count, time), the game board, the side panel (`show_bar`), and the ASCII-art title / win / loss message.
 
 ---
 
 #### `int game_event(struct event* event, void* game)`
-Hlavná funkcia hernej slučky, ktorú volá knižnica world pri každej udalosti. Spracúva:
-- `EVENT_START` (nastaví rýchlosť hry a vykreslí úvodný stav)
-- `EVENT_KEY` (pohyb kurzora, odkrytie, vlajka, reštart)
-- `EVENT_ESC` (ukončenie hry)
-- Aktualizuje časomier a volá draw_game.
+The main game loop function, called by the `world` library on every event. Handles:
+- `EVENT_START` (sets the game speed and draws the initial state)
+- `EVENT_KEY` (cursor movement, reveal, flag, restart)
+- `EVENT_ESC` (quits the game)
+- Updates the timer and calls `draw_game`.
 
 ---
 
-## Modifikácie knižnice World
+## Modifications to the World Library
 
-V knižnici `world.c` / `world.h` neboli vykonané žiadne zmeny. Všetky volania `ncurses` prechádzajú výhradne cez funkcie knižnice `world`:
+No changes were made to `world.c` / `world.h`. All `ncurses` calls go exclusively through the functions of the `world` library:
 
-- `set_cell()` - vykreslenie znaku (biela na čiernej)
-- `set_color_cell()` - vykreslenie znaku so zvolenou farbou
-- `set_message()` - vykreslenie reťazca
-- `clear_screen()` - vymazanie obrazovky
-- `game_speed()` - nastavenie rýchlosti časovača
-- `start_world()` - spustenie hernej slučky
+- `set_cell()` - draws a character (white on black)
+- `set_color_cell()` - draws a character with a chosen color
+- `set_message()` - draws a string
+- `clear_screen()` - clears the screen
+- `game_speed()` - sets the timer speed
+- `start_world()` - starts the game loop
 
 ---
 
-## Použité zdroje
+## References
 
-- Repozitár knižnice world: https://github.com/hladek/world
-- Flood-fill algoritmus: https://en.wikipedia.org/wiki/Flood_fill
+- `world` library repository: https://github.com/hladek/world
+- Flood-fill algorithm: https://en.wikipedia.org/wiki/Flood_fill
