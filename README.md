@@ -79,10 +79,10 @@ make clean
 |--------|--------|
 | `#` | Unrevealed cell |
 | `F` | Flagged (suspected mine) cell |
-| _(number on cell)_ | Number of mines in the 8 neighboring cells |
-| _(empty white)_ | Revealed safe cell with no adjacent mines |
+| (number on cell) | Number of mines in the 8 neighboring cells |
+| (empty white) | Revealed safe cell with no adjacent mines |
 | `*` | Mine (shown after losing) |
-| _(yellow background)_ | Current cursor position |
+| (yellow background) | Current cursor position |
 
 ---
 
